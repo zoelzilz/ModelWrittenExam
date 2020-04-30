@@ -1,0 +1,75 @@
+---
+title: "Dinking Around - Time Series"
+output: html_notebook
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+Model (finish later when you're bored)
+$$
+\begin{align}
+\newline
+\frac{d A}{dt}  &= i - A(d_A + \gamma_I F_I  + \gamma_U F_U \\ 
+\newline
+\frac{d P}{dt} &=  r_P D_I - P(d_P + \beta_I F_I + \beta_U F_U) \\
+\newline
+\frac{d F_U}{dt} &= F_U (\gamma_U e_{FU}A - d_{FU}) -P\beta_I F_U + F_I(\gamma_I e_{FI}A) \\
+\newline
+\frac{d F_I}{dt} &= P\beta_I F_U - d_{FI}F_I \\
+\newline
+\frac{d S_U}{dt} &= r_{SU}S_U - (D_U e_{DU} S_U \alpha_{DUSU} + D_Ie_{DI}S_U \alpha_{DISU}) + r_{SI}S_I - F_I S_U c\\
+\newline
+\frac{d S_I}{dt} &= F_I S_U c - (D_U e_{DU}\alpha_{DUSI} + D_Ie_{DI}\alpha_{DISI})\\
+\newline
+\frac{d D_U}{dt} &= D_U(S_U e_{DU} \alpha_{DUSU} - d_{DU} - S_I e_{DU} \alpha_{DUSI}) + D_I(S_U e_{DISU} + S_I e_{DI} \alpha_{DISI})\\
+\newline
+\frac{d D_I}{dt} &= D_i S_I e_{DU} \alpha_{DUSI} - d_{DI}\\
+\end{align}
+$$
+
+Picking Parameters
+- the following are parameters from Long et al
+```{r}
+
+source("par_vals_orig.R")
+
+```
+
+
+##One For-Loop at a time
+###Let's Start with algae
+$$
+\begin{align}
+\newline
+\frac{d A}{dt}  &= i - A(d_A + \gamma_I F_I  + \gamma_U F_U) \\ 
+\end{align}
+$$
+
+```{r}
+tset <- seq(from=0, to=1000, length.out = 10000) # definitely going to have to tweak time scale later
+A.simu <- NaN*tset1; R.simu1[1] <- 1
+
+for(i in 2:length(tset)){
+	dt <- tset1[i]-tset1[i-1]
+	A <- A.simu[i-1]
+	dA <- i - A(d_A + gamma_I*F_I + gamma_U*F_U)
+	A.simu[i] <- A + dA
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
