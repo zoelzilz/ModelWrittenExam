@@ -5,7 +5,7 @@ inp <-5  #5 #or 10 # or 15
 
 # death rates d
 d_A <- 0.1   # death of algae
-d_P <- 0.1    # death of parasites
+d_P <- 0.01    # death of parasites
 d_FU <- 0.05   # death of uninfected first int hosts
 d_FI <- 0.05   # death of infected first int hosts
 d_DU <- 0.05   # death of uninfected definitive hosts
@@ -43,7 +43,7 @@ e_DI <- 0.3   # conversion of 2I hosts by infecteds into determinate host tissue
 
 # reproduction rate
 ## I guess we will make these equal for now?
-r_P <- 0.5 # reproduction of parasites (note: if we want to include pathogenicity other than death, could we subtract r from the IDH pop equation?)
+r_P <- 2 # reproduction of parasites (note: if we want to include pathogenicity other than death, could we subtract r from the IDH pop equation?)
 r_SU <- 0.05 # reproduction of new uninfected second intermediate hosts
 r_SI <- 0.05 # reproduction of new uninfecteds by INFECTED second intermediate hosts
 

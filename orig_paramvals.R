@@ -1,13 +1,15 @@
+################## CHECK ACCURACY ##################
+
 # input of algae
-i <- 5
+inp <- 5
 # death rates d
 ## long et al has them all equal except parasites
 d_A <- 0.05   # death of algae
 d_P <- 0.1    # death of parasites
-d_FU <- d_A   # death of uninfected first int hosts
-d_FI <- d_A   # death of infected first int hosts
-d_DU <- d_A   # death of uninfected definitive hosts
-d_DI <- d_A   # death of infected definitive hosts
+d_FU <- 0.1   # death of uninfected first int hosts
+d_FI <- 0.1   # death of infected first int hosts
+d_DU <- 0.1   # death of uninfected definitive hosts
+d_DI <- 0.1   # death of infected definitive hosts
 
 # grazing rate 
 ## long et al has these equal to predation rates at first
