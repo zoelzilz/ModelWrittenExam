@@ -1,7 +1,10 @@
 ---
-title: "Building the Model and Running Time Series"
-output: html_notebook
+title: "TimeSeries_KevinUpdates"
+author: "Zoe Zilz"
+date: "5/6/2020"
+output: html_document
 ---
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
 	echo = TRUE,
@@ -11,7 +14,7 @@ knitr::opts_chunk$set(
 library(tidyverse)
 ```
 
-Model (finish later when you're bored)
+Model
 $$
 \begin{align}
 \newline

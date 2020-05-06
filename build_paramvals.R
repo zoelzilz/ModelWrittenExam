@@ -5,7 +5,7 @@ inp <-5  #5 #or 10 # or 15
 
 # death rates d
 d_A <- 0.1   # death of algae
-d_P <- 0.01    # death of parasites
+d_P <- 0    # death of parasites
 d_FU <- 0.05   # death of uninfected first int hosts
 d_FI <- 0.05   # death of infected first int hosts
 d_DU <- 0.05   # death of uninfected definitive hosts
@@ -25,13 +25,13 @@ alpha_DISI <- 0.3   # predation of infected definitive hosts on infected second 
 
 # infection rate
 ## equates to c_HIP and c_HUP (consumption of parasite propagules) in long et al and is held equal
-beta_U <- 0.5   # infection rate of uninfected first int hosts
-beta_I <- 0.5   # infection rate of already infected first int hosts (dead end) 
+beta_U <- 0.1   # infection rate of uninfected first int hosts
+beta_I <- 0.1   # infection rate of already infected first int hosts (dead end) 
 
 # contact rate
 ## I made this up so I'm going to have to figure it out
 ## actually it's technically the R0 I think?! Just for a different species of host.. but does it matter
-c <- 0.8    # we'll just set it really high for now
+c <- 2    # we'll just set it really high for now
 
 # conversion rate
 # preds have higher i guess 
