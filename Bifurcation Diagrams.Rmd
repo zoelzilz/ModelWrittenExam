@@ -1,0 +1,45 @@
+---
+title: "Bifurcation Diagrams"
+author: "Zoe Zilz"
+date: "5/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup 2}
+source("kevinmods_paramvals.R") # continually edited as chunks of the model are added
+
+# should I also make a file for initial state variable values?
+## yes
+
+source("build_statevars0.R")
+
+tset <- seq(from=0, to=1000, length.out = 5000) # definitely going to have to tweak time scale later
+
+# color for algae
+Acol <- "green"
+# color for 1IH snails
+Fcol <- "orange"
+# color for 2IH fish
+Scol <- "purple"
+# color for DH birbs
+Dcol <- "blue"
+# color for parasite eggs
+Pcol <- "red"
+
+
+```
+
+
+A* and F* versus grazing rate (gamma)
+```{r}
+gamma_set <- seq(0,1,length.out = 50) # range for parameter values
+
+Xstarset <- NaN*Yset # different y axes of bifurcation diagram
+Pstarset <- NaN*Yset
+```
+
+# PART 5B: Calculating the equilibrium points for each value of Y

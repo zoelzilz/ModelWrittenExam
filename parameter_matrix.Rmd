@@ -1,0 +1,73 @@
+---
+title: "Parameter matrix"
+author: "Gabe Runte"
+date: "5/6/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("lattice")
+library(tidyverse)
+library(lattice)
+```
+
+This is meant to be used with a working and stable system of ODEs. 
+The goal is to allow you to vary two parameters (maybe you can scale this) and assess some state properties of your system.
+If there are bugs or questions, please let me know! 
+I am sure there are prettier (tidier) ways to code much of this, so feel free to touch up and repost!
+
+```{r step 1: create vector of parameter values and a holding matrix or two}
+parameter.range<- seq(0.5, 1, length.out=5)
+parameter.set.1 <- matrix(rep(parameter.range, length.out= (length(parameter.range)^2)),nrow= length(parameter.range), ncol= length(parameter.range))
+
+parameter.set.2 <- t(parameter.set.1)
+
+#create matrices for your simulated values to be visualized later
+holding.matrix.1 <- matrix(
+  rep(NaN, length.out= (length(parameter.set.1))),
+  nrow=length(parameter.range),
+  ncol=length(parameter.range))
+
+holding.matrix.2 <- holding.matrix.1
+
+#I use the below to name my matrix cols/rows for the eventual plots
+names <- parameter.range
+names <- round(names, digits= 2)
+
+colnames(holding.matrix.1) <- names; rownames(holding.matrix.1) <- names
+colnames(holding.matrix.2) <- names; rownames(holding.matrix.2) <- names
+```
+
+```{r}
+for(j in 1:(length(g2.set))){
+  parameter.1 <- parameter.set.1[j]
+  parameter.2 <- parameter.set.2[j]  
+  
+  
+  ##reset t0 values for simulated state variables here##
+  
+  #below is your for() loop diff eq solver
+  for(){
+    
+    #ODEs and such
+    
+  }
+  
+  #save info into your holding matrices
+  holding.matrix.1[j] <- #some state varaible value or something (ex. population.simu[length(population.simu)])
+  holding.matrix.2[j] <- #some other interesting value being simulated in each iteration of your loop. 
+
+}
+```
+
+```{r creating your heal maps}
+#how many tick marks do you want on each axis of your heatmap?
+marks <- 2
+x.scale <- list(at=seq(1, length(parameter.range), marks))
+y.scale <- list(at=seq(1, length(parameter.range), marks))
+
+levelplot(holding.matrix.1, xlab= "Parameter 1", ylab = "Parameter 2", scales=list(x=x.scale, y=y.scale ), main= "State Variable by Parameter")
+levelplot(holding.matrix.2, xlab= "Parameter 1", ylab = "Parameter 2", scales=list(x=x.scale, y=y.scale ), main= "State Variable by Parameter")
+```
+

@@ -1,6 +1,8 @@
 ---
 title: "Building the Model and Running Time Series"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
@@ -34,7 +36,6 @@ $$
 $$
 
 Picking Parameters
-- the following are parameters from Long et al
 ```{r run_first}
 
 source("build_paramvals.R") # continually edited as chunks of the model are added

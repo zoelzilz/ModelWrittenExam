@@ -13,41 +13,27 @@ knitr::opts_chunk$set(
 )
 library(tidyverse)
 ```
+## Updates From Meeting With Kevin  
+### Include:  
+- Consider subsuming algae as equilibrium value A* into grazer equation  
+- **Grazers (snails) need to be limited by density dependent mortality ** 
+  -- does this add on top of normal mortality, or replace it?  
+- **Fix grazer equation so they become saturated by algae at a rate A/h+A, with h being handling time  **
+  -- same for both infected and uninfected  
+- Change cercaria infection parameter to either be it's own dynamic equation or use separation of time scales to subsume
+  -- make sure cercariae are produced as a function of algae consumed by grazers
+- add a non-dynamic alternative prey for definitive hosts
 
-Model
-$$
-\begin{align}
-\newline
-\frac{d A}{dt}  &= i - A(d_A + \gamma_I F_I  + \gamma_U F_U \\ 
-\newline
-\frac{d P}{dt} &=  r_P D_I - P(d_P + \beta_I F_I + \beta_U F_U) \\
-\newline
-\frac{d F_U}{dt} &= F_U (\gamma_U e_{FU}A - d_{FU}) -P\beta_I F_U + F_I(\gamma_I e_{FI}A) \\
-\newline
-\frac{d F_I}{dt} &= P\beta_I F_U - d_{FI}F_I \\
-\newline
-\frac{d S_U}{dt} &= r_{SU}S_U - (D_U e_{DU} S_U \alpha_{DUSU} + D_Ie_{DI}S_U \alpha_{DISU}) + r_{SI}S_I - F_I S_U c\\
-\newline
-\frac{d S_I}{dt} &= F_I S_U c - (D_U e_{DU}\alpha_{DUSI} + D_Ie_{DI}\alpha_{DISI})\\
-\newline
-\frac{d D_U}{dt} &= D_U(S_U e_{DU} \alpha_{DUSU} - d_{DU} - S_I e_{DU} \alpha_{DUSI}) + D_I(S_U e_{DISU} + S_I e_{DI} \alpha_{DISI})\\
-\newline
-\frac{d D_I}{dt} &= D_i S_I e_{DU} \alpha_{DUSI} - d_{DI}\\
-\end{align}
-$$
+```{r set parameters, include = FALSE}
 
-Picking Parameters
-- the following are parameters from Long et al
-```{r run_first}
-
-source("build_paramvals.R") # continually edited as chunks of the model are added
+source("kevinmods_paramvals.R") # continually edited as chunks of the model are added
 
 # should I also make a file for initial state variable values?
 ## yes
 
 source("build_statevars0.R")
 
-tset <- seq(from=0, to=400, length.out = 5000) # definitely going to have to tweak time scale later
+tset <- seq(from=0, to=1000, length.out = 5000) # definitely going to have to tweak time scale later
 
 # color for algae
 Acol <- "green"
@@ -64,8 +50,10 @@ Pcol <- "red"
 ```
 
 
-##One For-Loop at a time
-###Let's Start with algae
+## One For-Loop at a time
+### Let's Start with algae
+Kevin says algae carrying capacity is i/d_A (duh)
+He also says we could subsume A* into the rest of the equations, but I don't want to do that yet
 
 $$
 \begin{align}
@@ -95,16 +83,20 @@ for(i in 2:length(tset)){
 plot(tset, A.simu,type='l',las=1,lwd=2,ylab='Population Size',xlab='Time', col=Acol,ylim=c(0,100))
 legend(x=70,y=90,legend=c('Algae'),lwd=2,col=c(Acol))
 ```
-ok, that worked, algae is just growing logistically somehow... due to death?
+
+ok, that worked, algae is just growing logistically due to death?
 
 ### Now lets add in first intermediate hosts (snails) but without parasites in the system
 We should see consumption of algae and growth of snails (I didnt set this up to have a carrying capacity or predator but I probably should...)
+Kevin thinks adding in density dependence for snails (cannibalism and shelter limitation) by incorporating -mF^2 (m = density dependent mortality)
+also adding handling time for snails eating algae (A/(h+A))
+turn castration on by setting eF_I = 0
 $$
 \begin{align}
 \newline
-\frac{d F_U}{dt} &= F_U (\gamma_U e_{FU}A - d_{FU}) -P\beta_I F_U + F_I(\gamma_I e_{FI}A) \\
+\frac{d F_U}{dt} &= F_U (\gamma_U e_{FU}\frac{A}{h_F+A} - d_{FU}) -P\beta_I F_U + F_I(\gamma_I e_{FI}\frac{A}{h_F+A}) - m{F_U}^2\\
 \newline
-\frac{d F_I}{dt} &= P\beta_I F_U - d_{FI}F_I \\
+\frac{d F_I}{dt} &= P\beta_I F_U - d_{FI}F_I - m{F_I}^2\\
 \end{align}
 $$
 ```{r algae_and_1IH}
@@ -122,13 +114,17 @@ for(i in 2:length(tset)){
 	A <- A.simu[i-1]
 	F_U <- FU.simu[i-1]
 	F_I <- FI.simu[i-1]
+	# algae
 	dA <- (inp - A*(d_A + gamma_I*F_I + gamma_U*F_U))*dt
-	dF_U <- (F_U*(gamma_U*e_FU*A - d_FU)  # grazing * conversion efficiency * algae pop - death
-	         - (P*beta_I*F_U)             # parasites (0) * infection * uninfected pop, should = 0
-	         + F_I*(gamma_I*e_FI*A))*dt   # births from infecteds, should = 0
-	
-	# right now this is causing insane rapid pred prey cycles late in the game
-	dF_I <- ((P*beta_I*F_U) - (d_FI*F_I))*dt
+	# uninfected
+	dF_U <- (F_U*(gamma_U*e_FU*(A/(h_F +A)) - d_FU)  # grazing * conversion efficiency * algae pop/handling time - death
+	         - (P*beta_I*F_U)                   # parasites (0) * infection * uninfected pop, should = 0
+	         + F_I*(gamma_I*e_FI*(A/(h_F +A)))  # births from infecteds, should = 0
+	         - (m_FU * F_U)^2)*dt               # density dependent mortality
+	# infected
+	dF_I <- ((P*beta_I*F_U) 
+	         - (d_FI*F_I)                       # deaths
+	         - (m_FI * F_I)^2)*dt               # density dependent mortality
 	A.simu[i] <- A + dA
 	FU.simu[i] <- F_U + dF_U
 	FI.simu[i] <- F_I + dF_I
@@ -141,10 +137,11 @@ lines(tset, FU.simu, type = 'l', las = 1, lwd = 2, col = Fcol)
 lines(tset, FI.simu, type = 'l', las = 1, lty = 3, col = Fcol)
 legend(x=70,y=90,legend=c('Algae', '1st Intermediate Host'),lwd=2,col=c(Acol, Fcol))
 ```
-Ok, algae are blowing up but that's ok
+
+Looks good so far, reaching an equilibrium. Here we have both natural mortality and density dependent mortality, not sure how appropriate that is, **but check with group.**
 
 ### Let's add second intermediate hosts
-We should see fish coming out of nowhere (might need to fix this) and not being eaten yet so they're gonna explode, snails are still not being eaten or infected so they will also explode, and algae should stay the same. not much should change
+We should see fish coming out of nowhere (might need to fix this) and not being eaten yet so they're gonna explode, snails are still not being eaten or infected so they will stay same, and algae should stay the same. not much should change
 $$
 \begin{align}
 \frac{d S_U}{dt} &= r_{SU}S_U - (D_U e_{DU} S_U \alpha_{DUSU} + D_Ie_{DI}S_U \alpha_{DISU}) + r_{SI}S_I - F_I S_U c\\
@@ -182,14 +179,15 @@ for(i in 2:length(tset)){
 	# algae
 	dA <- (inp - A*(d_A + gamma_I*F_I + gamma_U*F_U))*dt
 	# uninfected 1IH
-		# right now this is causing insane rapid pred prey cycles late in the game
-	dF_U <- (F_U*(gamma_U*e_FU*A - d_FU)  # grazing * conversion efficiency * algae pop - death
-	         - (P*beta_I*F_U)             # parasites (0) * infection * uninfected pop, should = 0
-	         + F_I*(gamma_I*e_FI*A))*dt   # births from infecteds, should = 0
+	dF_U <- (F_U*(gamma_U*e_FU*(A/(h_F +A)) - d_FU)  # grazing * conversion efficiency * algae pop/handling time - death
+	         - (P*beta_I*F_U)                   # parasites (0) * infection * uninfected pop, should = 0
+	         + F_I*(gamma_I*e_FI*(A/(h_F +A)))  # births from infecteds, should = 0
+	         - (m_FU * F_U)^2)*dt               # density dependent mortality
 	# infected 1IH
   	# this should stay zero
 	dF_I <- ((P*beta_I*F_U) 
-	         - (d_FI*F_I))*dt
+	         - (d_FI*F_I)                       # deaths
+	         - (m_FI * F_I)^2)*dt               # density dependent mortality
 	# uninfected 2IH
 	dS_U <- ((r_SU*S_U)                                              # births
 	         - (D_U * e_DU * alpha_DUSU + D_I*e_DI*S_U*alpha_DISU)   # consumption by uninfected and infected predators, no natural mortality 
@@ -216,11 +214,12 @@ lines(tset, SU.simu, type = 'l', las = 1, lwd = 2, col = Scol)
 lines(tset, SI.simu, type = 'l', las = 1, lty = 3, col = Scol)
 legend(x=70,y=90,legend=c('Algae', '1st Intermediate Host'),lwd=2,col=c(Acol, Fcol))
 ```
-OK, insane exponential growth of 2IH/fish, looks crazy... but prob accurate since no natural mortality
+
+OK, insane exponential growth of 2IH/fish, looks crazy... but probably accurate since no natural mortality
 
 ### Let's add in definitive hosts, birds
 This should start to make things interesting, at least for fish 2IHs
-I should expect to see a typical type 1 functional response to prey from pred
+I should expect to see a typical type 1 functional response to prey from pred, so cycling and no equilibrium
 $$
 \begin{align}
 \frac{d D_U}{dt} &= D_U(S_U e_{DU} \alpha_{DUSU} - d_{DU} - S_I e_{DU} \alpha_{DUSI}) + D_I(S_U e_{DISU} + S_I e_{DI} \alpha_{DISI})\\
@@ -259,18 +258,20 @@ for(i in 2:length(tset)){
 	# algae
 	dA <- (inp - A*(d_A + gamma_I*F_I + gamma_U*F_U))*dt
 	# uninfected 1IH
-	dF_U <- (F_U*(gamma_U*e_FU*A - d_FU)  # grazing * conversion efficiency * algae pop - death
-	         - (P*beta_I*F_U)             # parasites (0) * infection * uninfected pop, should = 0
-	         + F_I*(gamma_I*e_FI*A))*dt   # births from infecteds, should = 0
+	dF_U <- (F_U*(gamma_U*e_FU*(A/(h_F +A)) - d_FU)  # grazing * conversion efficiency * algae pop/handling time - death
+	         - (P*beta_I*F_U)                   # parasites (0) * infection * uninfected pop, should = 0
+	         + F_I*(gamma_I*e_FI*(A/(h_F +A)))  # births from infecteds, should = 0
+	         - (m_FU * F_U)^2)*dt               # density dependent mortality  
 	# infected 1IH
   	# this should stay zero
 	dF_I <- ((P*beta_I*F_U) 
-	         - (d_FI*F_I))*dt
+	         - (d_FI*F_I)                 # deaths
+	         - (m_FI * F_I)^2)*dt         # density dependent mortality
 	# uninfected 2IH
 	dS_U <- ((r_SU*S_U)                                              # births
 	         - S_U*(D_U * e_DU * alpha_DUSU + D_I*e_DI*alpha_DISU)   # consumption by uninfected and infected predators 
-	         + (r_SI * S_I)                                            # births of infecteds, should = 0 because SI is 0
-	         - (F_I * S_U * c))* dt                                    # loss due to movement to infected class
+	         + (r_SI * S_I)                                          # births of infecteds, should = 0 because SI is 0
+	         - (F_I * S_U * c))* dt                                  # loss due to movement to infected class, should = 0
 	# infected 2IH
 	  # should stay zero
 	dS_I <- ((F_I * S_U * c) -                                          # infection
@@ -294,7 +295,7 @@ for(i in 2:length(tset)){
 
 # plot
 
-plot(tset, A.simu,type='l',las=1,lwd=2,ylab='Population Size',xlab='Time', col=Acol,ylim=c(0,10), xlim = c(0, 400))
+plot(tset, A.simu,type='l',las=1,lwd=2,ylab='Population Size',xlab='Time', col=Acol,ylim=c(0,10), xlim = c(0, 1000))
 lines(tset, FU.simu, type = 'l', las = 1, lwd = 2, col = Fcol)
 lines(tset, FI.simu, type = 'l', las = 1, lty = 3, col = Fcol)
 lines(tset, SU.simu, type = 'l', las = 1, lwd = 2, col = Scol)
@@ -303,59 +304,85 @@ lines(tset, DU.simu, type = 'l', las = 1, lwd = 2, col = Dcol)
 lines(tset, DI.simu, type = 'l', las = 1, lty = 3, col = Dcol)
 legend(x=70,y=7,legend=c('Algae', '1st Intermediate Host','2nd Intermediate Host','Definitive Host'),lwd=2,col=c(Acol, Fcol,Scol,Dcol))
 ```
+
 Looks ok, populations are really small, will deal with that later
 
-### NOW LETS ADD PARASITES
+## NOW LETS ADD PARASITES
+### Adding Parasite Eggs
+Using this Equation
 $$
 \begin{align}
 \newline
 \frac{d P}{dt} &=  r_P D_I - P(d_P + \beta_I F_I + \beta_U F_U) \\
 \end{align}
 $$
+###Let's add in cercariae to infect the second intermediate hosts  
+This is the equation. 
+$$
+\frac{dC}{dt} = F_I \gamma_I e_C (\frac{A}{h_F + A}) - d_CC - C(S_I + S_U)c
+$$
+The equlibrium value is then:
+$$
+C* = \frac {A F_I \gamma_I e_C}{(A + h_F)(d_C + c(S_I + S_U))}
+$$
+So we will set C* and add it into the previous equations.
+```{r}
+# Cstar <- (A * F_I * gamma_I * e_C)/((A + h_F)*(d_C + c *(S_I + S_U)))
 
+# i have no idea how to plug this into the loop so i'm just going to include the equation below
+```
 
+Just kidding, we're not doing that. Inserting dC/dt to the system instead
 ```{r algae_1IH_2IH_DH_Psites}
 
 # set up empty vectors and initial values
 A.simu <- NaN*tset; A.simu[1] <- 1
-FI.simu <- NaN*tset; FI.simu[1] <- 0 # lets see what happens if this starts at zero
+FI.simu <- NaN*tset; FI.simu[1] <- 1 # lets see what happens if this starts at zero
 FU.simu <- NaN*tset; FU.simu[1] <- 1
-SI.simu <- NaN*tset; SI.simu[1] <- 0 # lets see what happens if this starts at zero
+C.simu <- NaN*tset; C.simu[1] <- 0
+SI.simu <- NaN*tset; SI.simu[1] <- 1 # lets see what happens if this starts at zero
 SU.simu <- NaN*tset; SU.simu[1] <- 1
-DI.simu <- NaN*tset; DI.simu[1] <- 0 # lets see what happens if this starts at zero
+DI.simu <- NaN*tset; DI.simu[1] <- 1 # lets see what happens if this starts at zero
 DU.simu <- NaN*tset; DU.simu[1] <- 1
-P.simu <- NaN*tset; P.simu[1] <- 10
-
+P.simu <- NaN*tset; P.simu[1] <- 1
 
 # for loop
 for(i in 2:length(tset)){
 	dt <- tset[i]-tset[i-1]
-	A <- A.simu[i-1]
+	A <- A.simu[i-1]    # maybe subsume later
 	F_U <- FU.simu[i-1]
 	F_I <- FI.simu[i-1]
+	C <- C.simu[i-1]    # maybe subsume later
 	S_U <- SU.simu[i-1]
 	S_I <- SI.simu[i-1]
 	D_U <- DU.simu[i-1]
 	D_I <- DI.simu[i-1]
 	P <- P.simu[i-1]
+
 	# algae
 	dA <- (inp - A*(d_A + gamma_I*F_I + gamma_U*F_U))*dt
 	# uninfected 1IH
-	dF_U <- (F_U*(gamma_U*e_FU*A - d_FU)  # grazing * conversion efficiency * algae pop - death
-	         - (P*beta_I*F_U)             # parasites (0) * infection * uninfected pop, should = 0
-	         + F_I*(gamma_I*e_FI*A))*dt   # births from infecteds, should = 0
+	dF_U <- (F_U*(gamma_U*e_FU*(A/(h_F +A)) - d_FU)  # grazing * conversion efficiency * algae pop/handling time - death
+	         - (P*beta_I*F_U)                   # parasites (0) * infection * uninfected pop, should = 0
+	         + F_I*(gamma_I*e_FI*(A/(h_F +A)))  # births from infecteds, should = 0
+	         - (m_FU * F_U)^2)*dt               # density dependent mortality
+
 	# infected 1IH
-  	# this should stay zero
 	dF_I <- ((P*beta_I*F_U) 
-	         - (d_FI*F_I))*dt
+	         - (d_FI*F_I)                       # deaths
+	         - (m_FI * F_I)^2)*dt               # density dependent mortality
+	# cercariae
+	# dC/dt = Fi g e A/(h+A) - m C - C (Si + Su)c
+	dC <- (F_I * gamma_I * e_C * (A/(h_F + A)) # new cercariae made of algae via snails
+	       - (d_C * C)                         # death of cercariae                       
+	       - C* (S_I + S_U)*c)*dt              # uptake of cercariae into 2IH at a rate c
 	# uninfected 2IH
 	dS_U <- ((r_SU*S_U)                                              # births
 	         - S_U*(D_U * e_DU * alpha_DUSU + D_I*e_DI*alpha_DISU)   # consumption by uninfected and infected predators 
 	         + (r_SI * S_I)                                            # births of infecteds, should = 0 because SI is 0
 	         - (F_I * S_U * c))* dt                                    # loss due to movement to infected class
 	# infected 2IH
-	  # should stay zero
-	dS_I <- ((F_I * S_U * c) -                                          # infection
+	dS_I <- ((C * S_U * c) -                                           # infection
 	           S_I*(D_U * e_DU * alpha_DUSI + D_I * e_DI * alpha_DISI))*dt  # consumption by uninfected and infected predators
 	
 	# uninfected DH
@@ -365,22 +392,24 @@ for(i in 2:length(tset)){
 	# infected DH
 	  # should stay zero
 	dD_I <- ((D_U *(S_I * e_DU * alpha_DUSI)) - (D_I*d_DI))* dt  # new infections from eating infected 2IH - death (not sure how conversion rate fits in here -- maybe should be mass action w/o e)
-	# parasites
+	# parasite eggs
 	dP <- ((r_P * D_I) - P * (d_P + beta_I * F_I + beta_U * F_U)) * dt
 	
 	A.simu[i] <- A + dA
 	FU.simu[i] <- F_U + dF_U
 	FI.simu[i] <- F_I + dF_I
+	C.simu[i] <- C + dC
 	SU.simu[i] <- S_U + dS_U
 	SI.simu[i] <- S_I + dS_I
 	DU.simu[i] <- D_U + dD_U
 	DI.simu[i] <- D_I + dD_I
 	P.simu[i] <- P + dP
+
 }
 
 # plot
 
-plot(tset, A.simu,type='l',las=1,lwd=2,ylab='Population Size',xlab='Time', col=Acol,ylim=c(0,10), xlim = c(0, 400))
+plot(tset, A.simu,type='l',las=1,lwd=2,ylab='Population Size',xlab='Time', col=Acol,ylim=c(0,20), xlim = c(0, 1000))
 lines(tset, FU.simu, type = 'l', las = 1, lwd = 2, col = Fcol)
 lines(tset, FI.simu, type = 'l', las = 1, lty = 3, col = Fcol)
 lines(tset, SU.simu, type = 'l', las = 1, lwd = 2, col = Scol)
@@ -388,10 +417,11 @@ lines(tset, SI.simu, type = 'l', las = 1, lty = 3, col = Scol)
 lines(tset, DU.simu, type = 'l', las = 1, lwd = 2, col = Dcol)
 lines(tset, DI.simu, type = 'l', las = 1, lty = 3, col = Dcol)
 lines(tset, P.simu, type = 'l', las = 1, lwd = 2, col = Pcol)
-legend("topright",legend=c('Algae', '1st Intermediate Host','2nd Intermediate Host','Definitive Host', 'Parasite Eggs'),lwd=2,col=c(Acol, Fcol,Scol,Dcol,Pcol))
+lines(tset, C.simu, type = 'l', las = 1, lty = 2, col = "black")
+legend("topright",legend=c('Algae', '1st Intermediate Host','2nd Intermediate Host','Definitive Host', 'Parasite Eggs', 'Cercariae'),lwd=2,col=c(Acol, Fcol,Scol,Dcol,Pcol,"black"))
 ```
 
-
+Ugh. This is a mess. Where are my parasites going? Parameters!
 
 
 
