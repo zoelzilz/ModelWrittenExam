@@ -1,0 +1,153 @@
+---
+title: "Final Time Series"
+author: "Zoe Zilz"
+date: "5/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+```{r set parameters etc, include=FALSE}
+source("kevinmods_paramvals.R") # continually edited as chunks of the model are added
+# should I also make a file for initial state variable values?
+## yes
+
+source("build_statevars0.R")
+
+tset <- seq(from=0, to=1000, length.out = 5000) # definitely going to have to tweak time scale later
+
+# color for algae
+Acol <- "green"
+# color for 1IH snails
+Fcol <- "orange"
+# color for 2IH fish
+Scol <- "purple"
+# color for DH birbs
+Dcol <- "blue"
+# color for parasite eggs
+Pcol <- "red"
+```
+Model:
+$$
+\begin{align}
+\newline
+algae:\\
+\frac{d A}{dt}  &= i - Ad_A + \gamma_I F_I(\frac{A}{h_F+A})  + \gamma_U F_U(\frac{A}{h_F+A})) * with\ handling\ time\\ 
+\newline
+First\ Intermediate\ Hosts\ (Snails):\\
+\frac{d F_U}{dt} &= F_U (\gamma_U e_{FU}\frac{A}{h_F+A} - d_{FU}) -P\beta_I F_U + F_I(\gamma_I e_{FI}\frac{A}{h_F+A}) - m{F_U}^2\\
+\newline
+\frac{d F_I}{dt} &= P\beta_I F_U - d_{FI}F_I - m{F_I}^2\\
+\newline
+Second\ Intermediate\ Hosts (Fish):\\
+\frac{d S_U}{dt} &= r_{SU}S_U - (D_U e_{DU} S_U \alpha_{DUSU} + D_Ie_{DI}S_U \alpha_{DISU}) + r_{SI}S_I - F_I S_U c\\
+\newline
+\frac{d S_I}{dt} &= F_I S_U c - (D_U e_{DU}\alpha_{DUSI} + D_Ie_{DI}\alpha_{DISI})\\
+\newline
+Cercariae:\\
+\frac{dC}{dt} = F_I \gamma_I e_C (\frac{A}{h_F + A}) - d_CC - C(S_I + S_U)c
+\newline
+Definitive\ Hosts\ (Birds):\\
+\frac{d D_U}{dt} &= D_U(S_U e_{DU} \alpha_{DUSU} - d_{DU} - S_I e_{DU} \alpha_{DUSI}) + D_I(S_U e_{DISU} + S_I e_{DI} \alpha_{DISI})\\
+\newline
+\frac{d D_I}{dt} &= D_i S_I e_{DU} \alpha_{DUSI} - d_{DI}\\
+\newline
+Parasite\ Eggs:
+\newline
+\frac{d P}{dt} &=  r_P D_I - P(d_P + \beta_I F_I + \beta_U F_U) \\
+\end{align}
+$$
+
+```{r algae_1IH_2IH_DH_Psites}
+# set up empty vectors and initial values
+A.simu <- NaN*tset; A.simu[1] <- 1
+FI.simu <- NaN*tset; FI.simu[1] <- 0 # lets see what happens if this starts at zero
+FU.simu <- NaN*tset; FU.simu[1] <- 1
+C.simu <- NaN*tset; C.simu[1] <- 0
+SI.simu <- NaN*tset; SI.simu[1] <- 0 # lets see what happens if this starts at zero
+SU.simu <- NaN*tset; SU.simu[1] <- 1
+DI.simu <- NaN*tset; DI.simu[1] <- 0 # lets see what happens if this starts at zero
+DU.simu <- NaN*tset; DU.simu[1] <- 1
+P.simu <- NaN*tset; P.simu[1] <- 1 # toggle on and off to see system without parasites
+
+# for loop
+for(i in 2:length(tset)){
+	dt <- tset[i]-tset[i-1]
+	A <- A.simu[i-1]    # maybe subsume later
+	F_U <- FU.simu[i-1]
+	F_I <- FI.simu[i-1]
+	C <- C.simu[i-1]    # maybe subsume later
+	S_U <- SU.simu[i-1]
+	S_I <- SI.simu[i-1]
+	D_U <- DU.simu[i-1]
+	D_I <- DI.simu[i-1]
+	P <- P.simu[i-1]
+
+	# algae
+	dA <- (inp - A*d_A                    # input - death
+	       - gamma_I*F_I*(A/(h_F +A))     # - grazing rate x handling time infected
+	       - gamma_U*F_U*(A/(h_F +A)))*dt # - grazing rate x handling time uninfected
+	# uninfected 1IH
+	dF_U <- (F_U*(gamma_U*e_FU*(A/(h_F +A)))  # grazing * conversion efficiency * algae pop/handling time (decreases with prey density) - REMOVED: death (-d_FU)
+	         - (P*beta_I*F_U)                   # parasites * infection * uninfected pop
+	         + F_I*(gamma_I*e_FI*(A/(h_F + A)))  # births from infecteds
+	         - (m_FU * F_U)^2)*dt               # density dependent mortality
+
+	# infected 1IH
+	dF_I <- ((P*beta_I*F_U) 
+	         #- (d_FI*F_I)                       # deaths REMOVED
+	         - (m_FI * F_I)^2)*dt               # density dependent mortality
+	# cercariae
+	# dC/dt = Fi g e A/(h+A) - m C - C (Si + Su)c
+	dC <- (F_I * gamma_I * e_C * (A/(h_F + A)) # new cercariae made of algae via snails
+	       - (d_C * C)                         # death of cercariae                       
+	       - C* (S_I + S_U)*c)*dt              # uptake of cercariae into 2IH at a rate c
+	# uninfected 2IH
+	dS_U <- ((r_SU*S_U)                                              # births
+	         - S_U*(D_U * e_DU * alpha_DUSU + D_I*e_DI*alpha_DISU)   # consumption by uninfected and infected predators 
+	         + (r_SI * S_I)                                            # births of infecteds
+	         - (F_I * S_U * c))* dt                                    # loss due to movement to infected class
+	# infected 2IH
+	dS_I <- ((C * S_U * c) -                                           # infection
+	           S_I*(D_U * e_DU * alpha_DUSI + D_I * e_DI * alpha_DISI))*dt  # consumption by uninfected+infected predators
+	
+	# uninfected DH
+	dD_U <- (D_U *((S_U * e_DU * alpha_DUSU) - d_DU - (S_I * e_DU * alpha_DUSI)) # births - death - infection
+	         + D_I*((S_U * e_DI * alpha_DISU) + (S_I * e_DI * alpha_DISI)))* dt  # births by infected class
+	
+	# infected DH
+	  # should stay zero
+	dD_I <- ((D_U *(S_I * alpha_DUSI)) - (D_I*d_DI))* dt  # new infections from eating infected 2IH - death 
+	
+	# parasite eggs
+	dP <- ((r_P * D_I) - P * (d_P + beta_I * F_I + beta_U * F_U)) * dt
+	
+	A.simu[i] <- A + dA
+	FU.simu[i] <- F_U + dF_U
+	FI.simu[i] <- F_I + dF_I
+	C.simu[i] <- C + dC
+	SU.simu[i] <- S_U + dS_U
+	SI.simu[i] <- S_I + dS_I
+	DU.simu[i] <- D_U + dD_U
+	DI.simu[i] <- D_I + dD_I
+	P.simu[i] <- P + dP
+
+}
+
+# plot
+
+plot(tset, A.simu,type='l',las=1,lwd=2,ylab='Population Size',xlab='Time', col=Acol,ylim=c(0,15), xlim = c(0, 250))
+lines(tset, FU.simu, type = 'l', las = 1, lwd = 2, col = Fcol)
+lines(tset, FI.simu, type = 'l', las = 1, lty = 3, col = Fcol)
+lines(tset, SU.simu, type = 'l', las = 1, lwd = 2, col = Scol)
+lines(tset, SI.simu, type = 'l', las = 1, lty = 3, col = Scol)
+lines(tset, DU.simu, type = 'l', las = 1, lwd = 2, col = Dcol)
+lines(tset, DI.simu, type = 'l', las = 1, lty = 3, col = Dcol)
+lines(tset, P.simu, type = 'l', las = 1, lwd = 2, col = Pcol)
+lines(tset, C.simu, type = 'l', las = 1, lty = 2, col = "black")
+legend("topright",legend=c('Algae', '1st Intermediate Host','2nd Intermediate Host','Definitive Host', 'Parasite Eggs', 'Cercariae'),lwd=2,col=c(Acol, Fcol,Scol,Dcol,Pcol,"black"))
+```

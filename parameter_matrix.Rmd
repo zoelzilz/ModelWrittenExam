@@ -61,7 +61,7 @@ for(j in 1:(length(g2.set))){
 }
 ```
 
-```{r creating your heal maps}
+```{r creating your heat maps}
 #how many tick marks do you want on each axis of your heatmap?
 marks <- 2
 x.scale <- list(at=seq(1, length(parameter.range), marks))
