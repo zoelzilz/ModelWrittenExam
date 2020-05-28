@@ -109,20 +109,21 @@ for(i in 2:length(tset)){
 	       - C* (S_I + S_U)*c)*dt                                      # uptake of cercariae into 2IH at a rate c
 	# uninfected 2IH
 	dS_U <- ((r_SU*S_U)                                                # births
-	         - S_U*(D_U * alpha_DUSU + D_I * alpha_DISU)               # consumption by uninfected and infected predators 
+	         - (D_U + D_I) * (gamma_D * ((S_U)/(h_D + (S_U))))         # type II consumption by uninfected and infected predators 
 	         + (r_SI * S_I)                                            # births from infecteds
 	         - (F_I * S_U * c))* dt                                    # loss due to movement to infected class
 	# infected 2IH
-	dS_I <- ((C * S_U * c) -                                           # infection
-	           S_I*(D_U * alpha_DUSI + D_I  * alpha_DISI))*dt  # consumption by uninfected+infected predators 
+	dS_I <- ((C * S_U * c)                                            # infection
+	         - ((D_U + D_I) * (gamma_D * ((alpha* S_I)/(h_D + (alpha * S_I))))))*dt  # type II consumption by uninfected+infected predators 
 	
 	# uninfected DH
-	dD_U <- (D_U *((S_U * e_DU * alpha_DUSU) - d_DU - (S_I * e_DU * alpha_DUSI)) # births - death - infection
-	         + D_I*((S_U * e_DI * alpha_DISU) + (S_I * e_DI * alpha_DISI)))* dt  # births by infected class
+	dD_U <- ((D_U + D_I) * (gamma_D * e_DU * ((v + S_U + alpha* S_I)/(h_D + (v + S_U + alpha * S_I)))) # births due to consumption of infected and uninfected prey, type II functional response
+	         - (D_U * d_DU)                                                                          # minus deaths
+	         - ((gamma_D*alpha*S_I)/(h_D + (v+S_U + alpha * S_I))))*dt                               # minus movement to infected class
 	
 	# infected DH
-	  # should stay zero
-	dD_I <- ((D_U *(S_I * alpha_DUSI)) - (D_I*d_DI))* dt  # new infections from eating infected 2IH - death 
+	dD_I <- ((D_U *((gamma_D * alpha * S_I)/(h_D + (v + S_U + alpha * S_I)))) # new infections from eating infected 2IH
+	         - (D_I*d_DI))* dt                                        # minus death 
 	
 	# parasite eggs
 	dP <- ((r_P * D_I) - P * (d_P + beta_I * F_I + beta_U * F_U)) * dt
@@ -141,7 +142,7 @@ for(i in 2:length(tset)){
 
 # plot
 
-plot(tset, A.simu,type='l',las=1,lwd=2,ylab='Population Size',xlab='Time', col=Acol,ylim=c(0,5), xlim = c(0, 250))
+plot(tset, A.simu,type='l',las=1,lwd=2,ylab='Population Size',xlab='Time', col=Acol,ylim=c(0,500), xlim = c(0, 10))
 lines(tset, FU.simu, type = 'l', las = 1, lwd = 2, col = Fcol)
 lines(tset, FI.simu, type = 'l', las = 1, lty = 3, col = Fcol)
 lines(tset, SU.simu, type = 'l', las = 1, lwd = 2, col = Scol)

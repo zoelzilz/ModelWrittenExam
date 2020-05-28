@@ -27,13 +27,16 @@ gamma_U <- 2  # grazing rate of uninfected first int hosts
 h_F <- 0.5
 h_D <- 0.5
 
-# attack rate
+# general attack rate
 ## these will need to vary later but for now they are all equal (system with no behavioral manipulation)
 ## 0.2 seems to be some sort of craziness threshold, but pop still crashes quickly
-alpha_DUSU <- 0.2   # predation of uninfected definitive hosts on uninfected second int hosts
-alpha_DUSI <- 0.2   # predation of uninfected definitive hosts on infected second int hosts
-alpha_DISU <- 0.2   # predation of infected definitive hosts on uninfected second int hosts
-alpha_DISI <- 0.2   # predation of infected definitive hosts on infected second int hosts
+gamma_D <- 0.5
+
+# multiplier for infected prey consumption rate
+alpha <- 2
+
+# alternate prey abundance 
+v <- 1
 
 # infection rate
 ## equates to c_HIP and c_HUP (consumption of parasite propagules) in long et al and is held equal
