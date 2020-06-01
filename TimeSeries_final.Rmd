@@ -19,7 +19,7 @@ source("final_paramvals.R") # continually edited as chunks of the model are adde
 
 source("build_statevars0.R")
 
-tset <- seq(from=0, to=1000, length.out = 5000) # definitely going to have to tweak time scale later
+tset <- seq(from=0, to=100, length.out = 5000) # definitely going to have to tweak time scale later
 
 # color for algae
 Acol <- "green"
@@ -73,7 +73,7 @@ SI.simu <- NaN*tset; SI.simu[1] <- 0 # lets see what happens if this starts at z
 SU.simu <- NaN*tset; SU.simu[1] <- 1
 DI.simu <- NaN*tset; DI.simu[1] <- 0 # lets see what happens if this starts at zero
 DU.simu <- NaN*tset; DU.simu[1] <- 1
-P.simu <- NaN*tset; P.simu[1] <- 1 # toggle on and off to see system without parasites
+P.simu <- NaN*tset; P.simu[1] <- 0 # toggle on and off to see system without parasites
 
 # for loop
 for(i in 2:length(tset)){
@@ -95,12 +95,12 @@ for(i in 2:length(tset)){
 	# uninfected 1IH
 	dF_U <- (F_U*(gamma_U*e_FU*(A/(h_F +A)))  # grazing * conversion efficiency * algae pop/handling time (decreases with prey density) - REMOVED: death (-d_FU)
 	         - (P*beta_I*F_U)                   # parasites * infection * uninfected pop
-	         + F_I*(gamma_I*e_FI*(A/(h_F + A)))  # births from infecteds
+	         + F_I*(gamma_I*e_FI*(A/(h_F + A))) # births from infecteds
 	         - (m_FU * F_U)^2)*dt               # density dependent mortality
 
 	# infected 1IH
 	dF_I <- ((P*beta_I*F_U) 
-	         #- (d_FI*F_I)                       # deaths REMOVED
+	         #- (d_FI*F_I)                      # deaths REMOVED
 	         - (m_FI * F_I)^2)*dt               # density dependent mortality
 	# cercariae
 	# dC/dt = Fi g e A/(h+A) - m C - C (Si + Su)c
@@ -123,7 +123,8 @@ for(i in 2:length(tset)){
 	
 	# infected DH
 	dD_I <- ((D_U *((gamma_D * alpha * S_I)/(h_D + (v + S_U + alpha * S_I)))) # new infections from eating infected 2IH
-	         - (D_I*d_DI))* dt                                        # minus death 
+	         - (D_I*d_DI)
+	         )* dt                                        # minus death 
 	
 	# parasite eggs
 	dP <- ((r_P * D_I) - P * (d_P + beta_I * F_I + beta_U * F_U)) * dt
@@ -142,14 +143,14 @@ for(i in 2:length(tset)){
 
 # plot
 
-plot(tset, A.simu,type='l',las=1,lwd=2,ylab='Population Size',xlab='Time', col=Acol,ylim=c(0,500), xlim = c(0, 10))
+plot(tset, A.simu,type='l',las=1,lwd=2,ylab='Population Size',xlab='Time', col=Acol,ylim=c(-50,100), xlim = c(0, 100))
 lines(tset, FU.simu, type = 'l', las = 1, lwd = 2, col = Fcol)
 lines(tset, FI.simu, type = 'l', las = 1, lty = 3, col = Fcol)
 lines(tset, SU.simu, type = 'l', las = 1, lwd = 2, col = Scol)
 lines(tset, SI.simu, type = 'l', las = 1, lty = 3, col = Scol)
 lines(tset, DU.simu, type = 'l', las = 1, lwd = 2, col = Dcol)
 lines(tset, DI.simu, type = 'l', las = 1, lty = 3, col = Dcol)
-lines(tset, P.simu, type = 'l', las = 1, lwd = 2, col = Pcol)
-lines(tset, C.simu, type = 'l', las = 1, lty = 2, col = "black")
+#lines(tset, P.simu, type = 'l', las = 1, lwd = 2, col = Pcol)
+#lines(tset, C.simu, type = 'l', las = 1, lty = 2, col = "black")
 legend("topright",legend=c('Algae', '1st Intermediate Host','2nd Intermediate Host','Definitive Host', 'Parasite Eggs', 'Cercariae'),lwd=2,col=c(Acol, Fcol,Scol,Dcol,Pcol,"black"))
 ```
