@@ -1,23 +1,20 @@
----
-title: "Final Time Series"
-author: "Zoe Zilz"
-date: "5/19/2020"
-output: html_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse)
-```
+################################################################################################################################################ troubleshooting model with kevins edits ##################################################################################################################################################
+# trying to get it to work without parasites in the system first
+# currently either the DH predator crashes or the 2IH prey crashes, depending on parameters
+# SHOULD see predator limiting prey pop nicely with type II functional response (no cycles)
 
 
-```{r set parameters etc, include=FALSE}
-#source("final_paramvals.R") 
-source("WORKING_paramvals.R") # continually edited as chunks of the model are added# continually edited as chunks of the model are added
+# do i need to incorporate the full handling time in denomenator with populations of all prey items (in denom) for the consumption part of the prey equation, while only having the prey population in the numerator???
+### OH MY GOD I THINK I FIXED IT
+#### nope just kidding, preds still shoot to infinity
+# FINALLY GOT IT TO WORK, had to get rid of carrying capacity for 2IH fish, but add a mortality rate for them, and reparameterize alt prey (v) for DHs
 
-#source("build_statevars0.R")
+source("WORKING_paramvals.R") # continually edited as chunks of the model are added
 
-tset <- seq(from=0, to=1000, length.out = 5000) #
+
+source("build_statevars0.R")
+
+tset <- seq(from=0, to=1000, length.out = 5000) # definitely going to have to tweak time scale later
 
 # color for algae
 Acol <- "green"
@@ -29,48 +26,8 @@ Scol <- "purple"
 Dcol <- "blue"
 # color for parasite eggs
 Pcol <- "red"
-```
-Model:
-$$
-\begin{align}
-\newline
-Algae:\\
-\frac{d A}{dt}  &= i - \left(\gamma_I F_I(\frac{A}{h_F+A})  + \gamma_U F_U(\frac{A}{h_F+A})\right)- Ad_A \\
-\newline
-First\ Intermediate\ Hosts\ (Snails):\\
-\frac{d F_U}{dt} &= F_U (\gamma_U e_{FI}\frac{A}{h_F+A}) + F_I(\gamma_I e_{FI}\frac{A}{h_F+A}) -P\beta_I F_U - m{F_U}^2\\
-\newline
-\frac{d F_I}{dt} &= P\beta_I F_U - m{F_I}^2\\
-\newline
-Cercariae:\\
-\frac{dC}{dt} &= F_I \gamma_I e_C (\frac{A}{h_F + A}) - d_CC - C(S_I + S_U)c \\
-\newline
-Second\ Intermediate\ Hosts\ (Fish):\\
-\frac{d S_U}{dt} &= r_{SU}S_U(1 - \frac{S_U}{K}) + r_{SI} S_I(1 - \frac{S_I}{K}) - \left((D_U + D_I) * \gamma_D \frac{S_U}{h_D + (V + S_U + \alpha S_I)}\right)  - C S_U c \\
-\newline
-\frac{d S_I}{dt} &= C S_U c - \left((D_U + D_I) * \gamma_D \frac{\alpha S_I}{h_D + (V + S_U + \alpha S_I)}\right) )\\
-\newline
-Definitive\ Hosts\ (Birds):\\
-\frac{d D_U}{dt} &= (D_U + D_I)\left(\gamma e_{DU} \frac{V +S_U + \alpha S_I}{h_D + (V + S_U + \alpha S_I)} \right) - D_U \frac{\gamma_D \alpha S_I}{h_D + (V + S_U + \alpha S_I)} - D_U d\\
-\newline
-\frac{d D_I}{dt} &= D_U \frac{\gamma_D \alpha S_I}{h + (V + S_U + \alpha S_I)} - D_I d\\
-\newline
-Parasite\ Eggs:
-\newline
-\frac{d P}{dt} &=  r_P D_I - P(d_P + \beta_I F_I + \beta_U F_U) \\
-\end{align}
-$$
-## NOTES:
-switch to mortality rate instead of logistic growth instead (for fish)
 
-need ratio of v/v+h needs to be less than mortality of DH
-v < dh/(1-d)
 
-holly says to increase overall abundance I can mess with death rates and conversion rates
-
-do i need to incorporate the full handling time in denomenator with populations of all prey items (in denom) for the consumption part of the prey equation, while only having the prey population in the numerator???
-Yes
-```{r for loop}
 # set up empty vectors and initial values
 A.simu <- NaN*tset; A.simu[1] <- 1
 FI.simu <- NaN*tset; FI.simu[1] <- 0 # parasites off
@@ -164,10 +121,7 @@ for(i in 2:length(tset)){
   P.simu[i] <- P + dP
   
 }
-```
 
-Plot Time Series
-```{r plot time series}
 # plot
 # parasites are off so parasite/infected time series are commented out
 # legend gets in the way so its commented out
@@ -185,7 +139,4 @@ lines(tset, P.simu, type = 'l', las = 1, lwd = 2, col = Pcol)
 lines(tset, C.simu, type = 'l', las = 1, lty = 2, col = "black")
 #legend("topright",legend=c('Algae', '1st Intermediate Host','2nd Intermediate Host','Definitive Host', 'Parasite Eggs', 'Cercariae'),lwd=2,col=c(Acol, Fcol,Scol,Dcol,Pcol,"black"))
 #dev.off()
-
-```
-
 

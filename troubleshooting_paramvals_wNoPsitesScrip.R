@@ -9,8 +9,9 @@ d_P <- 0.1     # death of parasites
 d_C <- 0.1     # death of cercariae
 #d_FU <- 0.05   # death of uninfected first int hosts
 #d_FI <- 0.05   # death of infected first int hosts
-d_DU <- 0.2   # death of uninfected definitive hosts 0.3 is APPARENTLY WAY TOO HIGH, and 0.1 too low??!
-d_DI <- 0.2   # death of infected definitive hosts
+d_DU <- 0.22   # death of uninfected definitive hosts 0.3 is APPARENTLY WAY TOO HIGH, and 0.1 too low??!
+################## THIS IS THE ONLY VALUE I CAN KEEP DEATH RATE AT WHERE PRED/PREY POPS REACH EQULIBRIUM
+d_DI <- 0.22   # death of infected definitive hosts
 m_FU <- 0.1   # density dependent mortality of uninfected first int hosts
 m_FI <- 0.1   # density dependent mortality of infected first int hosts
 
@@ -29,7 +30,7 @@ gamma_D <- 0.5
 ### for saturation rates for preds and grazers
 ### in denominator so larger means slower?
 h_F <- 2  # handling time for first int hosts (grazing time for snails... good around 2 with a gamma of 0.5 and conversion rate of 0.5, algal input of 10)
-h_D <- 0.1 # if zero, whole model crashes/explodes/breaks???
+h_D <- 2 # if zero, whole model crashes/explodes/breaks???
 
 # carrying capacity for fish second int hosts (shot in the dark)
 k <- 10

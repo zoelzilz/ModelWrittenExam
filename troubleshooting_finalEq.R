@@ -3,15 +3,18 @@
 # currently either the DH predator crashes or the 2IH prey crashes, depending on parameters
 # SHOULD see predator limiting prey pop nicely with type II functional response (no cycles)
 
+# do i need to incorporate the full handling time in denomenator with populations of all prey items (in denom) for the consumption part of the prey equation, while only having the prey population in the numerator???
+### OH MY GOD I THINK I FIXED IT
+#### nope just kidding, preds still shoot to infinity
 
-source("final_paramvals.R") # continually edited as chunks of the model are added
+source("troubleshooting_paramvals.R") # continually edited as chunks of the model are added
 # should I also make a file for initial state variable values?
 ## yes
 #source("scale10_paramvals.R") ## this was a disaster
 
 source("build_statevars0.R")
 
-tset <- seq(from=0, to=100, length.out = 5000) # definitely going to have to tweak time scale later
+tset <- seq(from=0, to=1000, length.out = 50000) # definitely going to have to tweak time scale later
 
 # color for algae
 Acol <- "green"
@@ -74,8 +77,8 @@ for(i in 2:length(tset)){
   # uninfected 2IH
   dS_U <- (
     (r_SU*S_U*(1- S_U/k))                              # trying out logistic growth
-    -((D_U) * (gamma_D * ((S_U)/(h_D + (S_U)))))       # taking out handling time made curve shallower (growth slower... doesn't make sense)
-    -(D_I * gamma_D * ((S_U)/(h_D + (S_U))))            # un-simplified equation, multiplied it out
+    -((D_U) * (gamma_D * ((S_U)/(h_D + (v + S_U + alpha* S_I)))))       # added in all prey items to denom
+    -(D_I * gamma_D * ((S_U)/(h_D + (v + S_U + alpha* S_I))))            # un-simplified equation, multiplied it out
     #+ (r_SI * S_I)                   # births from infecteds, off right now
     #- (F_I * S_U * c)                # loss due to movement to infected class, also off right now
   )* dt                              
@@ -84,7 +87,7 @@ for(i in 2:length(tset)){
   
   # infected 2IH ## should be zero right now
   dS_I <- ((C * S_U * c)                                            # infection
-           - ((D_U + D_I) * (gamma_D * ((alpha* S_I)/(h_D + (alpha * S_I))))))*dt  # type II consumption by uninfected+infected predators 
+           - ((D_U + D_I) * (gamma_D * ((alpha* S_I)/(h_D + (v + S_U + alpha* S_I))))))*dt  # type II consumption by uninfected+infected predators 
   
   
   
@@ -92,15 +95,15 @@ for(i in 2:length(tset)){
   # uninfected DH
   dD_U <- ((D_U + D_I) * (gamma_D * e_DU * ((v + S_U + alpha* S_I)/(h_D + (v + S_U + alpha * S_I)))) # births due to consumption of infected and uninfected prey, type II functional response
            - (D_U * d_DU)                                                                 # minus deaths
-           #- ((gamma_D*alpha*S_I)/(h_D + (v+S_U + alpha * S_I))) # minus movement to infected class
+           - D_U*((gamma_D*alpha*S_I)/(h_D + (v+S_U + alpha * S_I))) # minus movement to infected class
            )*dt                               
   
   
   
   # infected DH ## should be zero right now
   dD_I <- ((D_U *((gamma_D * alpha * S_I)/(h_D + (v + S_U + alpha * S_I)))) # new infections from eating infected 2IH
-           - (D_I*d_DI)
-  )* dt                                        # minus death 
+           - (D_I*d_DI)                                                     # minus death
+  )* dt                                         
   
   # parasite eggs
   dP <- ((r_P * D_I) - P * (d_P + beta_I * F_I + beta_U * F_U)) * dt
@@ -121,14 +124,16 @@ for(i in 2:length(tset)){
 # parasites are off so parasite/infected time series are commented out
 # legend gets in the way so its commented out
 
-plot(tset, A.simu,type='l',las=1,lwd=2,ylab='Population Size',xlab='Time', col=Acol,ylim=c(-50,100), xlim = c(0, 100))
+#png('nopsites.png')
+plot(tset, A.simu,type='l',las=1,lwd=2,ylab='Population Size',xlab='Time', col=Acol,ylim=c(-5,100), xlim = c(0, 1000))
 lines(tset, FU.simu, type = 'l', las = 1, lwd = 2, col = Fcol)
-#lines(tset, FI.simu, type = 'l', las = 1, lty = 3, col = Fcol)
+lines(tset, FI.simu, type = 'l', las = 1, lty = 3, col = Fcol)
 lines(tset, SU.simu, type = 'l', las = 1, lwd = 2, col = Scol)
-#lines(tset, SI.simu, type = 'l', las = 1, lty = 3, col = Scol)
+lines(tset, SI.simu, type = 'l', las = 1, lty = 3, col = Scol)
 lines(tset, DU.simu, type = 'l', las = 1, lwd = 2, col = Dcol)
-#lines(tset, DI.simu, type = 'l', las = 1, lty = 3, col = Dcol)
-#lines(tset, P.simu, type = 'l', las = 1, lwd = 2, col = Pcol)
-#lines(tset, C.simu, type = 'l', las = 1, lty = 2, col = "black")
-#legend("topright",legend=c('Algae', '1st Intermediate Host','2nd Intermediate Host','Definitive Host', 'Parasite Eggs', 'Cercariae'),lwd=2,col=c(Acol, Fcol,Scol,Dcol,Pcol,"black"))
-
+abline(h = 0)
+lines(tset, DI.simu, type = 'l', las = 1, lty = 3, col = Dcol)
+lines(tset, P.simu, type = 'l', las = 1, lwd = 2, col = Pcol)
+lines(tset, C.simu, type = 'l', las = 1, lty = 2, col = "black")
+legend("topright",legend=c('Algae', '1st Intermediate Host','2nd Intermediate Host','Definitive Host', 'Parasite Eggs', 'Cercariae'),lwd=2,col=c(Acol, Fcol,Scol,Dcol,Pcol,"black"))
+#dev.off()
