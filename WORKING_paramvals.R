@@ -14,7 +14,8 @@ d_DU <- 0.1   # death of uninfected definitive hosts 0.3 is APPARENTLY WAY TOO H
 d_DI <- 0.1   # death of infected definitive hosts
 m_FU <- 0.1   # density dependent mortality of uninfected first int hosts
 m_FI <- 0.1   # density dependent mortality of infected first int hosts
-m_S <- 0.05
+m_SU <- 0.05  # background mortality rate of uninfected fish second int hosts
+m_SI <- 0.05  # background mortality rate of infected fish second int hosts
 
 # grazing rate 
 ### later I will change them so that infected snails graze at a higher rate
